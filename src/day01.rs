@@ -21,7 +21,6 @@ fn main() {
             cur_elf.push(cur_amount);
         }
     }
-    calories.pop();
 
     let mut elf_calories: Vec<u32> = calories.iter()
                                     .map(|elf: &Vec<u32>| elf.iter().sum::<u32>())
