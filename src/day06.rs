@@ -49,7 +49,7 @@ fn find_start_marker<const WIN_SIZE: usize>(line: &[u8]) -> usize {
 }
 
 fn main() {
-    let path = Path::new("src/day06.txt");
+    let path = Path::new("inputs/day06.txt");
     let mut reader = match File::open(path) {
         Err(e) => panic!("could not open input file at {}: {}", path.display(), e),
         Ok(file) => BufReader::new(file),

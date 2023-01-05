@@ -60,7 +60,7 @@ where I: Iterator<Item = std::io::Result<String>> {
 }
 
 fn main() {
-    let path = Path::new("src/day09.txt");
+    let path = Path::new("inputs/day09.txt");
     let mut reader = match File::open(path) {
         Err(e) => panic!("could not open input file at {}: {}", path.display(), e),
         Ok(file) => BufReader::new(file),

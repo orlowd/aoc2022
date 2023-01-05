@@ -1,7 +1,7 @@
 use std::{fs::File, io::{BufRead, BufReader}, path::Path};
 
 fn main() {
-    let path = Path::new("src/day01.txt");
+    let path = Path::new("inputs/day01.txt");
     let reader = match File::open(&path) {
         Err(e) => panic!("could not open input file at {}: {}", path.display(), e),
         Ok(file) => BufReader::new(file),

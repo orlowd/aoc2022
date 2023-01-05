@@ -4,7 +4,7 @@ use std::io::BufReader;
 use std::path::Path;
 
 fn main() {
-    let path = Path::new("src/day10.txt");
+    let path = Path::new("inputs/day10.txt");
     let reader = match File::open(path) {
         Err(e) => panic!("could not open input file at {}: {}", path.display(), e),
         Ok(file) => BufReader::new(file),

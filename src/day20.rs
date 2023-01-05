@@ -34,7 +34,7 @@ fn grove_coords(numbers: &Vec<i64>, indexes: &Vec<usize>) -> i64 {
 }
 
 fn main() {
-    let path = Path::new("src/day20.txt");
+    let path = Path::new("inputs/day20.txt");
     let reader = match File::open(path) {
         Err(e) => panic!("could not open input file at {}: {}", path.display(), e),
         Ok(file) => BufReader::new(file),

@@ -153,7 +153,7 @@ fn part2(
 }
 
 fn main() {
-    let path = Path::new("src/day14.txt");
+    let path = Path::new("inputs/day14.txt");
     let reader = match File::open(path) {
         Err(e) => panic!("could not open input file at {}: {}", path.display(), e),
         Ok(file) => BufReader::new(file),

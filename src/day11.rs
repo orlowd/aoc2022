@@ -174,7 +174,7 @@ where F: FnOnce(u64) -> u64 + Copy {
 }
 
 fn main() {
-    let path = Path::new("src/day11.txt");
+    let path = Path::new("inputs/day11.txt");
     let reader = match File::open(path) {
         Err(e) => panic!("could not open input file at {}: {}", path.display(), e),
         Ok(file) => BufReader::new(file),

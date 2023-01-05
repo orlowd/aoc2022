@@ -231,7 +231,7 @@ fn part_2(moves: &Vec<Move>) {
 }
 
 fn main() {
-    let path = Path::new("src/day17.txt");
+    let path = Path::new("inputs/day17.txt");
     let input = read_to_string(path).unwrap();
 
     let moves: Vec<_> = input.trim_end().bytes().into_iter().map(|mv| {

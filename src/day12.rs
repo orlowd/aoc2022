@@ -54,7 +54,7 @@ fn bfs(heightmap: &Vec<Vec<u8>>, end: Position) -> HashMap<Position, u32> {
 }
 
 fn main() {
-    let path = Path::new("src/day12.txt");
+    let path = Path::new("inputs/day12.txt");
     let mut reader = match File::open(path) {
         Err(e) => panic!("could not open input file at {}: {}", path.display(), e),
         Ok(file) => BufReader::new(file),

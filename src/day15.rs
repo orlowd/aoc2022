@@ -83,7 +83,7 @@ fn get_hor_ranges(y: isize, beacons: &Vec<Data>, bounds: Option<Range>) -> Vec<R
 }
 
 fn main() {
-    let path = Path::new("src/day15.txt");
+    let path = Path::new("inputs/day15.txt");
     let reader = match File::open(path) {
         Err(e) => panic!("could not open input file at {}: {}", path.display(), e),
         Ok(file) => BufReader::new(file),
