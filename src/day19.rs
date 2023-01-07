@@ -1,9 +1,10 @@
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Resources {
     ore: u8,
     clay: u8,
@@ -38,7 +39,7 @@ impl Resources {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Blueprint {
     ore_robot: Resources,
     clay_robot: Resources,
@@ -46,63 +47,70 @@ struct Blueprint {
     geode_robot: Resources,
 }
 
-fn parse_blueprint(input: &str) -> Blueprint {
-    let mut iter = input.split_terminator('.');
+impl Blueprint {
+    fn parse(input: &str) -> Blueprint {
+        let mut iter = input.split_terminator('.');
 
-    let ore = iter.next().unwrap().split_whitespace().nth(6).unwrap().parse().unwrap();
-    let ore_robot = Resources { ore, ..Default::default() };
+        let ore = iter.next().unwrap().split_whitespace().nth(6).unwrap().parse().unwrap();
+        let ore_robot = Resources { ore, ..Default::default() };
 
-    let ore = iter.next().unwrap().split_whitespace().nth(4).unwrap().parse().unwrap();
-    let clay_robot = Resources { ore, ..Default::default() };
+        let ore = iter.next().unwrap().split_whitespace().nth(4).unwrap().parse().unwrap();
+        let clay_robot = Resources { ore, ..Default::default() };
 
-    let mut obsidian_robot = iter.next().unwrap().split_whitespace();
-    let ore = obsidian_robot.nth(4).unwrap().parse().unwrap();
-    let clay = obsidian_robot.nth(2).unwrap().parse().unwrap();
-    let obsidian_robot = Resources { ore, clay, ..Default::default() };
+        let mut obsidian_robot = iter.next().unwrap().split_whitespace();
+        let ore = obsidian_robot.nth(4).unwrap().parse().unwrap();
+        let clay = obsidian_robot.nth(2).unwrap().parse().unwrap();
+        let obsidian_robot = Resources { ore, clay, ..Default::default() };
 
-    let mut geode_robot = iter.next().unwrap().split_whitespace();
-    let ore = geode_robot.nth(4).unwrap().parse().unwrap();
-    let obsidian = geode_robot.nth(2).unwrap().parse().unwrap();
-    let geode_robot = Resources { ore, obsidian, ..Default::default() };
+        let mut geode_robot = iter.next().unwrap().split_whitespace();
+        let ore = geode_robot.nth(4).unwrap().parse().unwrap();
+        let obsidian = geode_robot.nth(2).unwrap().parse().unwrap();
+        let geode_robot = Resources { ore, obsidian, ..Default::default() };
 
-    Blueprint { ore_robot, clay_robot, obsidian_robot, geode_robot }
+        Blueprint { ore_robot, clay_robot, obsidian_robot, geode_robot }
+    }
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, PartialEq, Eq, Hash)]
 struct Robots {
-    ore: u16,
-    clay: u16,
-    obsidian: u16,
-    geode: u16,
+    ore: u8,
+    clay: u8,
+    obsidian: u8,
+    geode: u8,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct Entry {
     time_left: u8,
     resources: Resources,
     robots: Robots,
 }
 
-fn get_max_geode_count(blueprint: Blueprint) -> u32 {
+fn get_max_geode_count(blueprint: Blueprint, time_limit: u8) -> u8 {
     let mut stack = vec![Entry {
-        time_left: 24,
+        time_left: time_limit,
         resources: Resources { ..Default::default() },
         robots: Robots { ore: 1, ..Default::default() }
     }];
+    let mut seen = HashSet::new();
     let mut result = 0;
 
     while let Some(entry) = stack.pop() {
+        if !seen.insert(entry.clone()) {
+            continue;
+        }
+
         let time_left = entry.time_left - 1;
         if time_left == 0 {
-            result = result.max(entry.resources.geode + entry.robots.geode as u8);
+            result = result.max(entry.resources.geode + entry.robots.geode);
             continue;
         }
 
         let collected = Resources {
-            ore: entry.robots.ore as u8,
-            clay: entry.robots.clay as u8,
-            obsidian: entry.robots.obsidian as u8,
-            geode: entry.robots.geode as u8,
+            ore: entry.robots.ore,
+            clay: entry.robots.clay,
+            obsidian: entry.robots.obsidian,
+            geode: entry.robots.geode,
         };
 
         if entry.resources.has_enough(&blueprint.geode_robot) {
@@ -163,7 +171,31 @@ fn get_max_geode_count(blueprint: Blueprint) -> u32 {
         });
     }
 
-    result.into()
+    result
+}
+
+fn part1<'a>(blueprints: impl Iterator<Item = &'a Blueprint>) {
+    const TIME_LIMIT: u8 = 24;
+
+    let result: usize = blueprints
+        .enumerate()
+        .map(|(i, bp)| (i + 1) * get_max_geode_count(bp.clone(), TIME_LIMIT) as usize)
+        .sum();
+
+    println!("[Part 1] The sum of quality levels of all of the blueprints is {}",
+             result);
+}
+
+fn part2<'a>(blueprints: impl Iterator<Item = &'a Blueprint>) {
+    const TIME_LIMIT: u8 = 32;
+
+    let result: u32 = blueprints
+        .take(3)
+        .map(|bp| get_max_geode_count(bp.clone(), TIME_LIMIT) as u32)
+        .product();
+
+    println!("[Part 2] The multiple of the largest number of geodes that could be \
+              opened using the first three blueprints is {}", result);
 }
 
 fn main() {
@@ -173,20 +205,11 @@ fn main() {
         Ok(file) => BufReader::new(file),
     };
 
-    let mut result = 0;
+    let blueprints: Vec<_> = reader
+        .lines()
+        .map(|l| Blueprint::parse(&l.unwrap()))
+        .collect();
 
-    for (i, line) in reader.lines().enumerate() {
-        let blueprint = parse_blueprint(&line.unwrap());
-
-        println!("{}: {blueprint:?}", i + 1);
-
-        let max_geodes = get_max_geode_count(blueprint);
-        println!("max_geodes = {max_geodes}");
-
-        let quality_level = (i + 1) * max_geodes as usize;
-        result += quality_level;
-    }
-
-    println!("[Part 1] Sum of quality level of all of the blueprints is {}",
-             result);
+    part1(blueprints.iter());
+    part2(blueprints.iter());
 }
