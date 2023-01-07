@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
+use std::ops::{Add, Sub};
 use std::path::Path;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -19,22 +20,30 @@ impl Resources {
         && self.obsidian >= needed.obsidian
         && self.geode >= needed.geode
     }
+}
 
-    fn subtract(&self, amount: &Resources) -> Resources {
+impl Add for Resources {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
         Resources {
-            ore: self.ore - amount.ore,
-            clay: self.clay - amount.clay,
-            obsidian: self.obsidian - amount.obsidian,
-            geode: self.geode - amount.geode,
+            ore: self.ore + rhs.ore,
+            clay: self.clay + rhs.clay,
+            obsidian: self.obsidian + rhs.obsidian,
+            geode: self.geode + rhs.geode,
         }
     }
+}
 
-    fn add(&self, amount: &Resources) -> Resources {
+impl Sub for Resources {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self {
         Resources {
-            ore: self.ore + amount.ore,
-            clay: self.clay + amount.clay,
-            obsidian: self.obsidian + amount.obsidian,
-            geode: self.geode + amount.geode,
+            ore: self.ore - rhs.ore,
+            clay: self.clay - rhs.clay,
+            obsidian: self.obsidian - rhs.obsidian,
+            geode: self.geode - rhs.geode,
         }
     }
 }
@@ -95,80 +104,111 @@ fn get_max_geode_count(blueprint: Blueprint, time_limit: u8) -> u8 {
     let mut seen = HashSet::new();
     let mut result = 0;
 
+    let max_required_ore = [
+        blueprint.ore_robot.ore,
+        blueprint.clay_robot.ore,
+        blueprint.obsidian_robot.ore,
+        blueprint.geode_robot.ore
+    ].into_iter().max().unwrap();
+
+    let max_required_clay = [
+        blueprint.ore_robot.clay,
+        blueprint.clay_robot.clay,
+        blueprint.obsidian_robot.clay,
+        blueprint.geode_robot.clay
+    ].into_iter().max().unwrap();
+
+    let max_required_obsidian = [
+        blueprint.ore_robot.obsidian,
+        blueprint.clay_robot.obsidian,
+        blueprint.obsidian_robot.obsidian,
+        blueprint.geode_robot.obsidian
+    ].into_iter().max().unwrap();
+
+    let arith_prog_sum = |from, to| (to - from) * (from + to) / 2;
+
     while let Some(entry) = stack.pop() {
         if !seen.insert(entry.clone()) {
             continue;
         }
 
-        let time_left = entry.time_left - 1;
+        let Entry { time_left, resources, robots } = entry;
+
+        let time_left = time_left - 1;
         if time_left == 0 {
-            result = result.max(entry.resources.geode + entry.robots.geode);
+            result = result.max(resources.geode + robots.geode);
+            continue;
+        }
+
+        let theor_max = resources.geode as u16 + arith_prog_sum(
+            robots.geode as u16, (robots.geode + time_left + 1) as u16
+        );
+        if theor_max <= result as u16 {
             continue;
         }
 
         let collected = Resources {
-            ore: entry.robots.ore,
-            clay: entry.robots.clay,
-            obsidian: entry.robots.obsidian,
-            geode: entry.robots.geode,
+            ore: robots.ore,
+            clay: robots.clay,
+            obsidian: robots.obsidian,
+            geode: robots.geode,
         };
 
-        if entry.resources.has_enough(&blueprint.geode_robot) {
+        if resources.has_enough(&blueprint.geode_robot) {
             stack.push(Entry {
                 time_left,
-                resources: entry.resources
-                    .subtract(&blueprint.geode_robot)
-                    .add(&collected),
+                resources: resources - blueprint.geode_robot + collected,
                 robots: Robots {
-                    geode: entry.robots.geode + 1,
-                    ..entry.robots.clone()
+                    geode: robots.geode + 1,
+                    ..robots.clone()
                 }
             });
             continue;
         }
 
-        if entry.resources.has_enough(&blueprint.ore_robot) {
+        if robots.ore < max_required_ore
+           && resources.has_enough(&blueprint.ore_robot) {
             stack.push(Entry {
                 time_left,
-                resources: entry.resources
-                    .subtract(&blueprint.ore_robot)
-                    .add(&collected),
+                resources: resources - blueprint.ore_robot + collected,
                 robots: Robots {
-                    ore: entry.robots.ore + 1,
-                    ..entry.robots.clone()
+                    ore: robots.ore + 1,
+                    ..robots.clone()
                 }
             });
         }
-        if entry.resources.has_enough(&blueprint.clay_robot) {
+        if robots.clay < max_required_clay
+           && resources.has_enough(&blueprint.clay_robot) {
             stack.push(Entry {
                 time_left,
-                resources: entry.resources
-                    .subtract(&blueprint.clay_robot)
-                    .add(&collected),
+                resources: resources - blueprint.clay_robot + collected,
                 robots: Robots {
-                    clay: entry.robots.clay + 1,
-                    ..entry.robots.clone()
+                    clay: robots.clay + 1,
+                    ..robots.clone()
                 }
             });
         }
-        if entry.resources.has_enough(&blueprint.obsidian_robot) {
+        if robots.obsidian < max_required_obsidian
+           && resources.has_enough(&blueprint.obsidian_robot) {
             stack.push(Entry {
                 time_left,
-                resources: entry.resources
-                    .subtract(&blueprint.obsidian_robot)
-                    .add(&collected),
+                resources: resources - blueprint.obsidian_robot + collected,
                 robots: Robots {
-                    obsidian: entry.robots.obsidian + 1,
-                    ..entry.robots.clone()
+                    obsidian: robots.obsidian + 1,
+                    ..robots.clone()
                 }
             });
         }
 
-        stack.push(Entry {
-            time_left,
-            resources: entry.resources.add(&collected),
-            robots: entry.robots
-        });
+        if robots.ore < max_required_ore
+           || robots.clay < max_required_clay
+           || robots.obsidian < max_required_obsidian {
+            stack.push(Entry {
+                time_left,
+                resources: resources + collected,
+                robots: robots
+            });
+        }
     }
 
     result
