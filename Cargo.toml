@@ -88,6 +88,10 @@ path = "src/day20.rs"
 name = "day21"
 path = "src/day21.rs"
 
+[[bin]]
+name = "day23"
+path = "src/day23.rs"
+
 [dependencies]
 itertools = "0.9.0"
 ndarray = "0.15"
